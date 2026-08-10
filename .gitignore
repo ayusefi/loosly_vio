@@ -1,0 +1,55 @@
+# Build
+build/
+build-*/
+cmake-build-*/
+install/
+log/
+compile_commands.json
+.cache/
+
+# Working notes and planning material (not part of the published project)
+docs/
+
+# Datasets and anything derived from them
+data/
+datasets/
+*.zip
+*.bag
+*.db3
+
+# Experiment output
+results/
+output/
+*.tum
+*.npz
+*.pdf
+*.png
+!config/**/*.png
+
+# C/C++ artifacts
+*.o
+*.a
+*.so
+*.so.*
+*.d
+*.gcda
+*.gcno
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Tooling scratch
+.claude/
+CLAUDE.md
+.aider*
+.DS_Store
