@@ -6,3 +6,4 @@ function(lvio_add_test name)
 endfunction()
 
 lvio_add_test(unit_toolchain)
+lvio_add_test(unit_so3)
