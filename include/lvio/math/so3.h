@@ -8,6 +8,9 @@ namespace lvio {
 // Below this threshold, exp and log uses series expansions.
 constexpr double kSmallAngle = 1e-2;
 
+// log switches to near 180 degrees branch at this threshold.
+constexpr double kNearPi = 1e-8;
+
 // Skew-symmetric matrix of v, built so that Hat(a) * b equals a.cross(b).
 inline Mat3 Hat(const Vec3& v) {
   Mat3 m;
@@ -43,6 +46,41 @@ inline Mat3 Exp(const Vec3& w) {
 
   return Mat3::Identity() + a * W + b * W * W;
 
+}
+
+// Recovers the rotation vector from a roation matrix. Inverse of Exp.
+inline Vec3 Log(const Mat3& R) {
+
+  // It already points along the axis. It is equal to 2 * sin(theta) * u.
+  const Vec3 w2s = Vee(R - R.transpose());
+
+  const double s = std::abs(w2s.norm() / 2.0);
+  const double c = (R.trace() - 1.0) / 2.0;
+  const double theta = std::atan2(s,c);
+
+  if (theta < kSmallAngle) {
+    const double t2= theta * theta;
+    return (w2s / 2.0) * (1.0 + t2 / 6.0 + 7.0 * t2 * t2 / 360.0);
+  }
+  else if (theta > M_PI - kNearPi) {
+    // At 180 degrees, axis has left the w2s entirely and lives at R + I.
+    const Mat3 uut = 0.5 * (R + Mat3::Identity());
+
+    int i = 0;
+    if (uut(1, 1) > uut(i, i)) i = 1;
+    if (uut(2, 2) > uut(i, i)) i = 2;
+
+    Vec3 u = uut.col(i) / std::sqrt(uut(i, i));
+    u.normalize();
+
+    // The sign is undetermined at exactly 180 degrees. just below it,
+    // w2s still carries the sign. Just match it and the function will be continuous.
+    if (u.dot(w2s) < 0.0) u = -u;
+
+    return theta * u;
+  }
+
+  return (theta / (2.0 * s)) * w2s;
 }
 
 }  // namespace lvio

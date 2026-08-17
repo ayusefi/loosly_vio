@@ -100,5 +100,54 @@ TEST(Exp, BranchesAgreeAtTheThreshold) {
   EXPECT_LT((just_below - just_above).norm(), 1e-4);
 }
 
+TEST(Log, ofIdentityIsZero) {
+  EXPECT_LT(Log(Mat3::Identity()).norm(), kTol);
+}
+
+TEST(Log, NinetyDegreesAboutZ) {
+
+  Mat3 R;
+  R << 0.0, -1.0, 0.0,
+       1.0, 0.0, 0.0,
+       0.0, 0.0, 1.0;
+      
+  EXPECT_LT((Log(R) - Vec3(0.0, 0.0, M_PI/2.0)).norm(), 1e-15);
+}
+
+TEST(Log, UndoesExp) {
+  const Vec3 cases[] = {
+      Vec3(0.0, 0.0, 0.0),        Vec3(1e-12, 0.0, 0.0),
+      Vec3(0.001, -0.002, 0.003), Vec3(0.005, 0.005, 0.005),
+      Vec3(0.3, -0.7, 1.2),       Vec3(1.0, 1.0, 1.0),
+      Vec3(0.0, 0.0, 3.0),        Vec3(-2.1, 0.4, 1.6),
+  };
+
+  for (const Vec3& w : cases) {
+    EXPECT_LT((Log(Exp(w)) - w).norm(), 1e-12) << "failed for " << w.transpose();
+  }
+}
+
+TEST(Log, HandlesHalfTurnsWithoutDemandingASign) {
+  const Vec3 axes[] = {Vec3::UnitX(), Vec3::UnitY(), Vec3::UnitZ(),
+                       Vec3(0.0, 0.6, 0.8), Vec3(1.0, 1.0, 1.0).normalized()};
+
+  for (const Vec3& axis : axes) {
+    const Mat3 R = Exp(axis * M_PI);
+    const Vec3 w = Log(R);
+
+    EXPECT_NEAR(w.norm(), M_PI, 1e-7);
+    EXPECT_LT((Exp(w) - R).norm(), 1e-7);
+  }
+}
+
+TEST(Log, IsAccurateJustBelowAHalfTurn) {
+  const Vec3 axis = Vec3(0.26726124, 0.53452248, 0.80178373);
+
+  for (double gap : {1e-3, 1e-5, 1e-7}) {
+    const Vec3 w = axis * (M_PI - gap);
+    EXPECT_LT((Log(Exp(w)) - w).norm(), 1e-6) << "gap " << gap;
+  }
+}
+
 }  // namespace
 }  // namespace lvio
