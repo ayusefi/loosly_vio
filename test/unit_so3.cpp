@@ -7,7 +7,7 @@ namespace {
 
 constexpr double kTol = 1e-15;
 
-// Lesson 2, part 6: the general shape of a skew-symmetric matrix.
+// The general shape of a skew-symmetric matrix.
 TEST(Hat, MatchesTheDerivedShape) {
   const Vec3 v(1.0, 2.0, 3.0);
   const Mat3 m = Hat(v);
@@ -23,7 +23,7 @@ TEST(Hat, MatchesTheDerivedShape) {
   EXPECT_DOUBLE_EQ(m(2, 2), 0.0);
 }
 
-// Lesson 2, part 4: this is what Hat is for, and the test that catches a sign
+// This is what Hat is for, and the test that catches a sign
 // error anywhere in the layout.
 TEST(Hat, ReproducesTheCrossProduct) {
   const Vec3 a(0.4, -1.3, 2.7);
@@ -32,7 +32,7 @@ TEST(Hat, ReproducesTheCrossProduct) {
   EXPECT_LT((Hat(a) * b - a.cross(b)).norm(), kTol);
 }
 
-// Lesson 3: the shape is forced by the length test, S^T = -S.
+// The shape is forced by the length test, S^T = -S.
 TEST(Hat, IsSkewSymmetric) {
   const Vec3 v(0.7, -0.2, 1.4);
   const Mat3 m = Hat(v);
@@ -41,7 +41,7 @@ TEST(Hat, IsSkewSymmetric) {
   EXPECT_DOUBLE_EQ(m.trace(), 0.0);
 }
 
-// Lesson 2, part 6: a turn about x fills the first slot, y the second, z the
+// A turn about x fills the first slot, y the second, z the
 // third. Getting this wrong puts the rotation on the wrong axis.
 TEST(Hat, PutsEachAxisInItsOwnSlot) {
   EXPECT_LT((Hat(Vec3::UnitX()) * Vec3::UnitY() - Vec3::UnitZ()).norm(), kTol);
@@ -57,6 +57,47 @@ TEST(Vee, UndoesHat) {
   const Vec3 v(-2.5, 0.9, 3.1);
 
   EXPECT_LT((Vee(Hat(v)) - v).norm(), kTol);
+}
+
+// No rotation must give the identity, Not NAN
+TEST(Exp, ofZeroIsIdentity) {
+  Mat3 R = Exp(Vec3::Zero());
+
+  EXPECT_LT((R - Mat3::Identity()).norm(), kTol);
+}
+
+// A worked example by hand
+TEST(Exp, NinetyDegreesAboutZ) {
+  Mat3 R = Exp(Vec3(0.0, 0.0, M_PI/2.0));
+
+  Mat3 expected;
+  expected << 0.0, -1.0, 0.0,
+              1.0, 0.0, 0.0,
+              0.0, 0.0, 1.0;
+
+  EXPECT_LT((R - expected).norm(), 1e-15);
+}
+
+// A rotation never change the length -> R^T R = I and det(R) = 1
+TEST(Exp, AlwaysProducesARotation) {
+  const Vec3 angles[] = {Vec3(1e-12, 0.0, 0.0), Vec3(0.001, -0.002, 0.003),
+                         Vec3(0.3, -0.7, 1.2),  Vec3(2.0, 2.0, 2.0)};
+
+  for (const Vec3& angle : angles) {
+    Mat3 R = Exp(angle);
+
+    EXPECT_LT((R.transpose() * R - Mat3::Identity()).norm(), 1e-14);
+    EXPECT_NEAR(R.determinant(), 1.0, 1e-14);
+  }
+}
+
+// The two branches must agree where they meet.
+TEST(Exp, BranchesAgreeAtTheThreshold) {
+  const Vec3 axis = Vec3(0.26726124, 0.53452248, 0.80178373);
+  const Mat3 just_below = Exp(axis * (kSmallAngle * 0.999));
+  const Mat3 just_above = Exp(axis * (kSmallAngle * 1.001));
+
+  EXPECT_LT((just_below - just_above).norm(), 1e-4);
 }
 
 }  // namespace
