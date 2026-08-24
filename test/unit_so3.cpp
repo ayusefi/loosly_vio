@@ -91,13 +91,15 @@ TEST(Exp, AlwaysProducesARotation) {
   }
 }
 
-// The two branches must agree where they meet.
+// The two branches must not produce a jump at the threshold. The gap must be
+// small enough that the function's own change across it stays well under the
+// tolerance, or the test measures the slope instead of the branch.
 TEST(Exp, BranchesAgreeAtTheThreshold) {
-  const Vec3 axis = Vec3(0.26726124, 0.53452248, 0.80178373);
-  const Mat3 just_below = Exp(axis * (kSmallAngle * 0.999));
-  const Mat3 just_above = Exp(axis * (kSmallAngle * 1.001));
+  const Vec3 axis(0.26726124, 0.53452248, 0.80178373);
+  const Mat3 below = Exp(axis * (kSmallAngle * (1.0 - 1e-7)));
+  const Mat3 above = Exp(axis * (kSmallAngle * (1.0 + 1e-7)));
 
-  EXPECT_LT((just_below - just_above).norm(), 1e-4);
+  EXPECT_LT((below - above).norm(), 1e-8);
 }
 
 TEST(Log, ofIdentityIsZero) { EXPECT_LT(Log(Mat3::Identity()).norm(), kTol); }
@@ -149,5 +151,63 @@ TEST(Log, IsAccurateJustBelowAHalfTurn) {
   }
 }
 
+TEST(RightJacobian, OfZeroIsIdentity) {
+  EXPECT_LT((RightJacobian(Vec3::Zero()) - Mat3::Identity()).norm(), kTol);
+  EXPECT_LT((RightJacobianInverse(Vec3::Zero()) - Mat3::Identity()).norm(),
+            kTol);
+}
+
+TEST(RightJacobian, InverseUndoesIt) {
+  const Vec3 axis(0.26726124, 0.53452248, 0.80178373);
+
+  for (double m : {1e-8, 1e-3, 0.05, 0.5, 2.0, 3.0}) {
+    const Vec3 theta = axis * m;
+    const Mat3 product = RightJacobian(theta) * RightJacobianInverse(theta);
+
+    EXPECT_LT((product - Mat3::Identity()).norm(), 1e-10)
+        << "at |theta| = " << m;
+  }
+}
+
+// Lesson 20 part 5: this is the definition. The nudge is deliberately NOT
+// parallel to theta, because a parallel one passes even with the wrong formula.
+TEST(RightJacobian, SatisfiesItsDefiningProperty) {
+  const Vec3 theta(0.4, -0.7, 1.1);
+  const Vec3 delta(1e-5, -2e-5, 1.5e-5);
+
+  const Mat3 exact = Exp(theta + delta);
+  const Mat3 with_jacobian = Exp(theta) * Exp(RightJacobian(theta) * delta);
+
+  EXPECT_LT((exact - with_jacobian).norm(), 1e-9);
+}
+
+// Proof that the test above is actually testing something: without the
+// Jacobian, the same comparison fails badly.
+TEST(RightJacobian, IsNeededAtAll) {
+  const Vec3 theta(0.4, -0.7, 1.1);
+  const Vec3 delta(1e-5, -2e-5, 1.5e-5);
+
+  const Mat3 exact = Exp(theta + delta);
+  const Mat3 naive = Exp(theta) * Exp(delta);
+
+  EXPECT_GT((exact - naive).norm(), 1e-6);
+}
+
+// Lesson 20 part 4: with a parallel nudge the naive version is exact, which is
+// why the two tests above must not use one.
+TEST(RightJacobian, ParallelNudgesHideTheProblem) {
+  const Vec3 theta(0.4, -0.7, 1.1);
+  const Vec3 delta = theta.normalized() * 2e-5;
+
+  EXPECT_LT((Exp(theta + delta) - Exp(theta) * Exp(delta)).norm(), 1e-12);
+}
+
+TEST(RightJacobian, BranchesAgreeAtTheThreshold) {
+  const Vec3 axis(0.26726124, 0.53452248, 0.80178373);
+  const Mat3 below = RightJacobian(axis * (kSmallAngle * (1.0 - 1e-7)));
+  const Mat3 above = RightJacobian(axis * (kSmallAngle * (1.0 + 1e-7)));
+
+  EXPECT_LT((below - above).norm(), 1e-8);
+}
 }  // namespace
 }  // namespace lvio

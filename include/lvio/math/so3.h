@@ -81,4 +81,37 @@ inline Vec3 Log(const Mat3& R) {
   return (theta / (2.0 * s)) * w2s;
 }
 
+// Right Jacobian of SO(3). See Barfoot, "State Estimation for Robotics", 2017.
+inline Mat3 RightJacobian(const Vec3& theta) {
+  const double t = theta.norm();
+  const double t2 = t * t;
+  const Mat3 W = Hat(theta);
+
+  double a = 0.0;
+  double b = 0.0;
+
+  if (t < kSmallAngle) {
+    a = -(0.5 - t2 / 24.0);
+    b = 1.0 / 6.0 - t2 / 120.0;
+  } else {
+    a = -(1.0 - std::cos(t)) / t2;
+    b = (t - std::sin(t)) / (t2 * t);
+  }
+
+  return Mat3::Identity() + a * W + b * W * W;
+}
+
+inline Mat3 RightJacobianInverse(const Vec3& theta) {
+  const double t = theta.norm();
+  const double t2 = t * t;
+  const Mat3 W = Hat(theta);
+
+  const double b =
+      (t < kSmallAngle)
+          ? 1.0 / 12.0 + t2 / 720.0
+          : 1.0 / t2 - (1.0 + std::cos(t)) / (2.0 * t * std::sin(t));
+
+  return Mat3::Identity() + 0.5 * W + b * W * W;
+}
+
 }  // namespace lvio
