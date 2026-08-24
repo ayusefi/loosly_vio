@@ -8,4 +8,4 @@ endfunction()
 lvio_add_test(unit_toolchain)
 lvio_add_test(unit_so3)
 lvio_add_test(unit_numeric_jacobian)
-
+lvio_add_test(unit_pose)
