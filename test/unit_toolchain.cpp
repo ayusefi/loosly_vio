@@ -85,7 +85,8 @@ TEST(Toolchain, CeresSolvesAScalarProblem) {
 }
 
 TEST(Toolchain, YamlCppParsesASequence) {
-  const YAML::Node node = YAML::Load("intrinsics: [458.654, 457.296, 367.215, 248.375]");
+  const YAML::Node node =
+      YAML::Load("intrinsics: [458.654, 457.296, 367.215, 248.375]");
 
   const auto intrinsics = node["intrinsics"].as<std::vector<double>>();
 

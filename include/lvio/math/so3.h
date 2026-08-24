@@ -1,7 +1,8 @@
 #pragma once
 
-#include "lvio/common/types.h"
 #include <cmath>
+
+#include "lvio/common/types.h"
 
 namespace lvio {
 
@@ -14,18 +15,18 @@ constexpr double kNearPi = 1e-8;
 // Skew-symmetric matrix of v, built so that Hat(a) * b equals a.cross(b).
 inline Mat3 Hat(const Vec3& v) {
   Mat3 m;
+  // clang-format off
   m <<    0.0, -v.z(),  v.y(),
        v.z(),    0.0, -v.x(),
       -v.y(),  v.x(),    0.0;
+  // clang-format on
   return m;
 }
 
 // Reads the three numbers back out of a skew-symmetric matrix. The lower
 // triangle is ignored, so a matrix that is not skew-symmetric gives a
 // meaningless answer rather than an error.
-inline Vec3 Vee(const Mat3& m) {
-  return Vec3(m(2, 1), m(0, 2), m(1, 0));
-}
+inline Vec3 Vee(const Mat3& m) { return Vec3(m(2, 1), m(0, 2), m(1, 0)); }
 
 // Rodrigues' formula. Turns a rotatoin vector into a rotation matrix.
 inline Mat3 Exp(const Vec3& w) {
@@ -38,31 +39,27 @@ inline Mat3 Exp(const Vec3& w) {
   if (theta < kSmallAngle) {
     a = 1.0 - theta * theta / 6.0 + theta * theta * theta * theta / 120.0;
     b = 0.5 - theta * theta / 24.0 + theta * theta * theta * theta / 720.0;
-  }
-  else {
+  } else {
     a = std::sin(theta) / theta;
     b = (1.0 - std::cos(theta)) / (theta * theta);
   }
 
   return Mat3::Identity() + a * W + b * W * W;
-
 }
 
 // Recovers the rotation vector from a roation matrix. Inverse of Exp.
 inline Vec3 Log(const Mat3& R) {
-
   // It already points along the axis. It is equal to 2 * sin(theta) * u.
   const Vec3 w2s = Vee(R - R.transpose());
 
   const double s = std::abs(w2s.norm() / 2.0);
   const double c = (R.trace() - 1.0) / 2.0;
-  const double theta = std::atan2(s,c);
+  const double theta = std::atan2(s, c);
 
   if (theta < kSmallAngle) {
-    const double t2= theta * theta;
+    const double t2 = theta * theta;
     return (w2s / 2.0) * (1.0 + t2 / 6.0 + 7.0 * t2 * t2 / 360.0);
-  }
-  else if (theta > M_PI - kNearPi) {
+  } else if (theta > M_PI - kNearPi) {
     // At 180 degrees, axis has left the w2s entirely and lives at R + I.
     const Mat3 uut = 0.5 * (R + Mat3::Identity());
 
@@ -74,7 +71,8 @@ inline Vec3 Log(const Mat3& R) {
     u.normalize();
 
     // The sign is undetermined at exactly 180 degrees. just below it,
-    // w2s still carries the sign. Just match it and the function will be continuous.
+    // w2s still carries the sign. Just match it and the function will be
+    // continuous.
     if (u.dot(w2s) < 0.0) u = -u;
 
     return theta * u;

@@ -1,6 +1,6 @@
-#include "lvio/math/so3.h"
-
 #include <gtest/gtest.h>
+
+#include "lvio/math/so3.h"
 
 namespace lvio {
 namespace {
@@ -49,9 +49,7 @@ TEST(Hat, PutsEachAxisInItsOwnSlot) {
   EXPECT_LT((Hat(Vec3::UnitZ()) * Vec3::UnitX() - Vec3::UnitY()).norm(), kTol);
 }
 
-TEST(Hat, OfZeroIsZero) {
-  EXPECT_LT(Hat(Vec3::Zero()).norm(), kTol);
-}
+TEST(Hat, OfZeroIsZero) { EXPECT_LT(Hat(Vec3::Zero()).norm(), kTol); }
 
 TEST(Vee, UndoesHat) {
   const Vec3 v(-2.5, 0.9, 3.1);
@@ -68,12 +66,14 @@ TEST(Exp, ofZeroIsIdentity) {
 
 // A worked example by hand
 TEST(Exp, NinetyDegreesAboutZ) {
-  Mat3 R = Exp(Vec3(0.0, 0.0, M_PI/2.0));
+  Mat3 R = Exp(Vec3(0.0, 0.0, M_PI / 2.0));
 
   Mat3 expected;
+  // clang-format off
   expected << 0.0, -1.0, 0.0,
               1.0, 0.0, 0.0,
               0.0, 0.0, 1.0;
+  // clang-format on
 
   EXPECT_LT((R - expected).norm(), 1e-15);
 }
@@ -81,7 +81,7 @@ TEST(Exp, NinetyDegreesAboutZ) {
 // A rotation never change the length -> R^T R = I and det(R) = 1
 TEST(Exp, AlwaysProducesARotation) {
   const Vec3 angles[] = {Vec3(1e-12, 0.0, 0.0), Vec3(0.001, -0.002, 0.003),
-                         Vec3(0.3, -0.7, 1.2),  Vec3(2.0, 2.0, 2.0)};
+                         Vec3(0.3, -0.7, 1.2), Vec3(2.0, 2.0, 2.0)};
 
   for (const Vec3& angle : angles) {
     Mat3 R = Exp(angle);
@@ -100,18 +100,17 @@ TEST(Exp, BranchesAgreeAtTheThreshold) {
   EXPECT_LT((just_below - just_above).norm(), 1e-4);
 }
 
-TEST(Log, ofIdentityIsZero) {
-  EXPECT_LT(Log(Mat3::Identity()).norm(), kTol);
-}
+TEST(Log, ofIdentityIsZero) { EXPECT_LT(Log(Mat3::Identity()).norm(), kTol); }
 
 TEST(Log, NinetyDegreesAboutZ) {
-
   Mat3 R;
+  // clang-format off
   R << 0.0, -1.0, 0.0,
        1.0, 0.0, 0.0,
        0.0, 0.0, 1.0;
-      
-  EXPECT_LT((Log(R) - Vec3(0.0, 0.0, M_PI/2.0)).norm(), 1e-15);
+  // clang-format on
+
+  EXPECT_LT((Log(R) - Vec3(0.0, 0.0, M_PI / 2.0)).norm(), 1e-15);
 }
 
 TEST(Log, UndoesExp) {
@@ -123,7 +122,8 @@ TEST(Log, UndoesExp) {
   };
 
   for (const Vec3& w : cases) {
-    EXPECT_LT((Log(Exp(w)) - w).norm(), 1e-12) << "failed for " << w.transpose();
+    EXPECT_LT((Log(Exp(w)) - w).norm(), 1e-12)
+        << "failed for " << w.transpose();
   }
 }
 

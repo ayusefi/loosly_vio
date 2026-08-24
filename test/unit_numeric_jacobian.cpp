@@ -1,6 +1,6 @@
-#include "lvio/math/numeric_jacobian.h"
-
 #include <gtest/gtest.h>
+
+#include "lvio/math/numeric_jacobian.h"
 
 namespace lvio {
 namespace {
@@ -17,7 +17,8 @@ TEST(NumericJacobian, AgreesWithTheAnalyticFormForRotatingAPoint) {
   EXPECT_LT((numeric - analytic).norm(), 1e-7);
 }
 
-// The bug that a sign flip that never crashes. This is the whole reason the checker exists.
+// The bug that a sign flip that never crashes. This is the whole reason the
+// checker exists.
 TEST(NumericJacobian, CatchesAFlippedSign) {
   const Mat3 R = Exp(Vec3(0.3, -0.5, 0.8));
   const Vec3 p(1.0, 2.0, 3.0);
@@ -42,7 +43,8 @@ TEST(NumericJacobian, AgreesForTheInverseRotationOfAPoint) {
   EXPECT_LT((numeric - analytic).norm(), 1e-7);
 }
 
-// At the identity there is nothing to rotate away, so the Jacobian of R p reduces to -Hat(p).
+// At the identity there is nothing to rotate away, so the Jacobian of R p
+// reduces to -Hat(p).
 TEST(NumericJacobian, ReducesToHatAtTheIdentity) {
   const Vec3 p(1.0, 2.0, 3.0);
 

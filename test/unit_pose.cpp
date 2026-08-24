@@ -1,6 +1,6 @@
-#include "lvio/math/pose.h"
-
 #include <gtest/gtest.h>
+
+#include "lvio/math/pose.h"
 
 namespace lvio {
 namespace {
