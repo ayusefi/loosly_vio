@@ -33,4 +33,9 @@ struct Pose {
 // Transform from pose a to pose b.
 inline Pose Between(const Pose& a, const Pose& b) { return a.Inverse() * b; }
 
+// Apply a six-number nudge to a pose.
+inline Pose Perturb(const Pose& pose, const Vec6& delta) {
+  return Pose(pose.R * Exp(delta.tail<3>()), pose.t + delta.head<3>());
+}
+
 }  // namespace lvio
