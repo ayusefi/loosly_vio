@@ -4,6 +4,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <opencv2/imgcodecs.hpp>
 
 namespace lvio {
     namespace {
@@ -126,5 +127,55 @@ namespace lvio {
                         (static_cast<double>(after.time - before.time));
         return Interpolate(before.pose, after.pose, s);
     }
+
+    StereoStream ReadStereoStream(const std::string& mav0_dir) {
+        const std::vector<CsvRow> left = ReadCsv(mav0_dir + "/cam0/data.csv");
+        const std::vector<CsvRow> right = ReadCsv(mav0_dir + "/cam1/data.csv");
+
+        if (left.size() != right.size()) {
+            throw std::runtime_error("cam0 and cam1 have different lengths in " + mav0_dir);
+        }
+
+        StereoStream stream;
+        stream.times.reserve(left.size());
+        stream.left_paths.reserve(left.size());
+        stream.right_paths.reserve(right.size());
+
+        for (std::size_t i = 0; i < left.size(); ++i) {
+            if (left[i].front() != right[i].front()) {
+                throw std::runtime_error("cam0 and cam2 timestamps differ at " + std::to_string(i));
+            }
+
+            stream.times.push_back(std::stoll(left[i][0]));
+            stream.left_paths.push_back(mav0_dir + "/cam0/data/" + left[i][1]);
+            stream.right_paths.push_back(mav0_dir + "/cam1/data/" + right[i][1]);
+        }
+
+        return stream;
+    }
+
+    StereoFrame LoadFrame(const StereoStream& stream, std::size_t index) {
+        if (index >= stream.times.size()) {
+            throw std::runtime_error("frame index out of range");
+        }
+
+        StereoFrame frame;
+        frame.time = stream.times[index];
+        frame.left = cv::imread(stream.left_paths[index], cv::IMREAD_GRAYSCALE);
+        frame.right = cv::imread(stream.right_paths[index], cv::IMREAD_GRAYSCALE);
+
+        for (const cv::Mat& image : {frame.left, frame.right}) {
+            if (image.empty()) {
+                throw std::runtime_error("cannot read image for frame " + std::to_string(index));
+            }
+
+            if (image.type() != CV_8UC1) {
+                throw std::runtime_error("expected 8-bit single channel");
+            }
+        }
+
+        return frame;
+    }
+
 
 } // namespace lvio

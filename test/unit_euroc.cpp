@@ -194,5 +194,116 @@ TEST(PoseAt, RefusesTheFramesMh01DoesNotCover) {
   EXPECT_EQ(refused, 44);
 }
 
+TEST(Replay, VisitsEverythingInTimeOrder) {
+  std::vector<ImuSample> imu(4);
+  for (int i = 0; i < 4; ++i) {
+    imu[i].time = 100 + 10 * i;  // 100, 110, 120, 130
+  }
+
+  StereoStream frames;
+  frames.times = {115, 135};
+  frames.left_paths = {"a", "b"};
+  frames.right_paths = {"a", "b"};
+
+  std::vector<Timestamp> order;
+  Replay(
+      imu, frames, [&](const ImuSample& s) { order.push_back(s.time); },
+      [&](std::size_t f) { order.push_back(frames.times[f]); });
+
+  const std::vector<Timestamp> expected = {100, 110, 115, 120, 130, 135};
+  EXPECT_EQ(order, expected);
+}
+
+// The filter must reach the image's instant before using the image.
+TEST(Replay, EmitsTheImuFirstWhenTimesAreEqual) {
+  std::vector<ImuSample> imu(1);
+  imu[0].time = 500;
+
+  StereoStream frames;
+  frames.times = {500};
+  frames.left_paths = {"a"};
+  frames.right_paths = {"a"};
+
+  std::vector<std::string> order;
+  Replay(
+      imu, frames, [&](const ImuSample&) { order.push_back("imu"); },
+      [&](std::size_t) { order.push_back("frame"); });
+
+  const std::vector<std::string> expected = {"imu", "frame"};
+  EXPECT_EQ(order, expected);
+}
+
+TEST(Replay, HandlesOneStreamRunningOutFirst) {
+  std::vector<ImuSample> imu(2);
+  imu[0].time = 10;
+  imu[1].time = 20;
+
+  StereoStream frames;
+  frames.times = {30, 40};
+  frames.left_paths = {"a", "b"};
+  frames.right_paths = {"a", "b"};
+
+  int imu_seen = 0;
+  int frames_seen = 0;
+  Replay(
+      imu, frames, [&](const ImuSample&) { ++imu_seen; },
+      [&](std::size_t) { ++frames_seen; });
+
+  EXPECT_EQ(imu_seen, 2);
+  EXPECT_EQ(frames_seen, 2);
+}
+
+TEST(Replay, HandlesEmptyStreams) {
+  int seen = 0;
+  Replay(
+      {}, StereoStream{}, [&](const ImuSample&) { ++seen; },
+      [&](std::size_t) { ++seen; });
+
+  EXPECT_EQ(seen, 0);
+}
+
+TEST(ReadStereoStream, MatchesTheMeasuredFactsForMh01) {
+  const std::string dir = "data/euroc/machine_hall/MH_01_easy/mav0";
+  std::ifstream exists(dir + "/cam0/data.csv");
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const StereoStream stream = ReadStereoStream(dir);
+
+  EXPECT_EQ(stream.times.size(), 3682u);
+  for (std::size_t i = 1; i < stream.times.size(); ++i) {
+    ASSERT_GT(stream.times[i], stream.times[i - 1]);
+  }
+}
+
+// Without the flag this would be CV_8UC3 and every assertion below
+// would be about the wrong thing.
+TEST(LoadFrame, GivesSingleChannelImagesOfTheRightSize) {
+  const std::string dir = "data/euroc/machine_hall/MH_01_easy/mav0";
+  std::ifstream exists(dir + "/cam0/data.csv");
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const StereoStream stream = ReadStereoStream(dir);
+  const StereoFrame frame = LoadFrame(stream, 0);
+
+  EXPECT_EQ(frame.time, stream.times[0]);
+  EXPECT_EQ(frame.left.cols, 752);
+  EXPECT_EQ(frame.left.rows, 480);
+  EXPECT_EQ(frame.left.type(), CV_8UC1);
+  EXPECT_EQ(frame.right.type(), CV_8UC1);
+  EXPECT_EQ(frame.left.channels(), 1);
+}
+
+TEST(LoadFrame, ThrowsWhenTheIndexIsOutOfRange) {
+  StereoStream stream;
+  stream.times = {1};
+  stream.left_paths = {"a"};
+  stream.right_paths = {"a"};
+
+  EXPECT_THROW(LoadFrame(stream, 5), std::runtime_error);
+}
 }  // namespace
 }  // namespace lvio

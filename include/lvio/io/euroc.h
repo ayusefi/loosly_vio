@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <opencv2/core.hpp>
 
 #include "lvio/common/types.h"
 #include "lvio/common/time.h"
@@ -47,5 +48,52 @@ namespace lvio {
     // Returns nothing if t falls outside the covered interval -- 44 images of MH_01
     // do. Samples must be sorted by time.
     std::optional<Pose> PoseAt(const std::vector<GroundTruthSample>& samples, Timestamp t);
-    
+
+    // A stereo pair with its pixels loaded.
+    struct StereoFrame {
+        Timestamp time = 0;
+        cv::Mat left;
+        cv::Mat right;
+    };
+
+    // Where the images are, without loading them. All of MH_01 would be 2.7 GB.
+    struct StereoStream {
+        std::vector<Timestamp> times;
+        std::vector<std::string> left_paths;
+        std::vector<std::string> right_paths;
+    };
+
+    // Reads the cam0 and cam1 index files from a mav0 directory. Throws if the two
+    // cameras disagree about any timestamp, which they never do in a healthy
+    // sequence but would if an archive were partly extracted.
+    StereoStream ReadStereoStream(const std::string& mav0_dir);
+
+    // Loads one pair. Throws if either file is missing or is not 8-bit single
+    // channel.
+    StereoFrame LoadFrame(const StereoStream& stream, std::size_t index);
+
+    // Calls on_imu and on_frame in time order. on_frame receives an index into the
+    // stream rather than pixels, so the caller decides whether to load them.
+    template <typename ImuFn, typename FrameFn>
+    void Replay(const std::vector<ImuSample>& imu, const StereoStream& frames, ImuFn on_imu, FrameFn on_frame) {
+        std::size_t i = 0;
+        std::size_t f = 0;
+
+        while (i < imu.size() || f < frames.times.size()) {
+            const bool imu_left = i < imu.size();
+            const bool frame_left = f < frames.times.size();
+
+            // At equal timestamps the imu goes first: the filter must reach the image's
+            // instant before it may use the image.
+            const bool imu_next = imu_left && (!frame_left || imu[i].time <= frames.times[f]);
+
+            if (imu_next) {
+                on_imu(imu[i]);
+                ++i;
+            } else {
+                on_frame(f);
+                ++f;
+            }
+        }
+    }
 } // namespace lvio
