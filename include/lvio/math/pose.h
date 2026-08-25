@@ -38,4 +38,11 @@ inline Pose Perturb(const Pose& pose, const Vec6& delta) {
   return Pose(pose.R * Exp(delta.tail<3>()), pose.t + delta.head<3>());
 }
 
+// The pose a fraction s of the way from a to b. s = 0 gives a, s = 1 gives b.
+// The position interpolates linearly. The rotation cannot -- averaging rotations
+// does not produce a rotation -- so it goes out to the tangent space and back.
+inline Pose Interpolate(const Pose& a, const Pose& b, double s) {
+  return Pose(a.R * Exp(Log(a.R.transpose() * b.R) * s), a.t + (b.t - a.t) * s);
+}
+
 }  // namespace lvio

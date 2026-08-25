@@ -69,5 +69,64 @@ TEST(Pose, BetweenDoesNotDependOnTheWorldOrigin) {
   EXPECT_LT((direct.t - after_shift.t).norm(), kTol);
 }
 
+TEST(Interpolate, EndsMatchTheInputs) {
+  const Pose a = MakeA();
+  const Pose b = MakeB();
+
+  const Pose at_zero = Interpolate(a, b, 0.0);
+  const Pose at_one = Interpolate(a, b, 1.0);
+
+  EXPECT_LT((at_zero.R - a.R).norm(), kTol);
+  EXPECT_LT((at_zero.t - a.t).norm(), kTol);
+  EXPECT_LT((at_one.R - b.R).norm(), kTol);
+  EXPECT_LT((at_one.t - b.t).norm(), kTol);
+}
+
+// Lesson 1: averaging rotations does not give a rotation. This must.
+TEST(Interpolate, AlwaysProducesARotation) {
+  const Pose a = MakeA();
+  const Pose b = MakeB();
+
+  for (double s : {0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0}) {
+    const Pose mid = Interpolate(a, b, s);
+
+    EXPECT_LT((mid.R.transpose() * mid.R - Mat3::Identity()).norm(), 1e-14)
+        << "at s = " << s;
+    EXPECT_NEAR(mid.R.determinant(), 1.0, 1e-14) << "at s = " << s;
+  }
+}
+
+// A fraction s of the way must be s of the angle, not merely somewhere between.
+TEST(Interpolate, CoversTheAngleProportionally) {
+  const Pose a = MakeA();
+  const Pose b = MakeB();
+  const double total = Log(a.R.transpose() * b.R).norm();
+
+  for (double s : {0.25, 0.5, 0.75}) {
+    const Pose mid = Interpolate(a, b, s);
+    const double covered = Log(a.R.transpose() * mid.R).norm();
+
+    EXPECT_NEAR(covered, s * total, 1e-12) << "at s = " << s;
+  }
+}
+
+TEST(Interpolate, MovesThePositionInAStraightLine) {
+  const Pose a = MakeA();
+  const Pose b = MakeB();
+
+  const Pose mid = Interpolate(a, b, 0.5);
+
+  EXPECT_LT((mid.t - 0.5 * (a.t + b.t)).norm(), kTol);
+}
+
+// Averaging the rotation matrices, which is what Lesson 1 warned against.
+TEST(Interpolate, BeatsAveragingTheMatrices) {
+  const Pose a = MakeA();
+  const Pose b = MakeB();
+
+  const Mat3 averaged = 0.5 * (a.R + b.R);
+
+  EXPECT_GT((averaged.transpose() * averaged - Mat3::Identity()).norm(), 1e-3);
+}
 }  // namespace
 }  // namespace lvio
