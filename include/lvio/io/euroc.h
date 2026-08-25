@@ -2,9 +2,11 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
 #include "lvio/common/types.h"
 #include "lvio/common/time.h"
+#include "lvio/math/pose.h"
 
 namespace lvio {
 
@@ -25,5 +27,25 @@ namespace lvio {
 
     // Reads mav0/imu0/data.csv.
     std::vector<ImuSample> ReadImu(const std::string& path);
+
+    // One row of the ground truth. The pose is T_WB: body frame into world frame.
+    // Velocity is in world axes, both biases in body axes.
+    struct GroundTruthSample {
+        Timestamp time = 0;
+        Pose pose;
+        Vec3 velocity = Vec3::Zero();
+        Vec3 gyro_bias = Vec3::Zero();
+        Vec3 accel_bias = Vec3::Zero();
+    };
+
+    // Reads mav0/state_groundtruth_estimate0/data.csv. The stored quaternions are
+    // rounded to six decimals and are not quite unit length, so they are normalised
+    // here rather than anywhere downstream.
+    std::vector<GroundTruthSample> ReadGroundTruth(const std::string& path);
+
+    // The pose at an arbitrary time, interpolated between the two rows either side.
+    // Returns nothing if t falls outside the covered interval -- 44 images of MH_01
+    // do. Samples must be sorted by time.
+    std::optional<Pose> PoseAt(const std::vector<GroundTruthSample>& samples, Timestamp t);
     
 } // namespace lvio
