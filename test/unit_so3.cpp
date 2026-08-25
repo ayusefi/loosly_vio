@@ -169,7 +169,7 @@ TEST(RightJacobian, InverseUndoesIt) {
   }
 }
 
-// Lesson 20 part 5: this is the definition. The nudge is deliberately NOT
+// This is the definition. The nudge is deliberately NOT
 // parallel to theta, because a parallel one passes even with the wrong formula.
 TEST(RightJacobian, SatisfiesItsDefiningProperty) {
   const Vec3 theta(0.4, -0.7, 1.1);
@@ -193,8 +193,8 @@ TEST(RightJacobian, IsNeededAtAll) {
   EXPECT_GT((exact - naive).norm(), 1e-6);
 }
 
-// Lesson 20 part 4: with a parallel nudge the naive version is exact, which is
-// why the two tests above must not use one.
+// This is the definition. The nudge is deliberately NOT
+// parallel to theta, because a parallel one passes even with the wrong formula.
 TEST(RightJacobian, ParallelNudgesHideTheProblem) {
   const Vec3 theta(0.4, -0.7, 1.1);
   const Vec3 delta = theta.normalized() * 2e-5;
