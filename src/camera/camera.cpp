@@ -114,4 +114,37 @@ Camera ReadCamera(const std::string& path) {
   return camera;
 }
 
+Pose ReadExtrinsics(const std::string& path) {
+  const YAML::Node node = YAML::LoadFile(path);
+  const std::vector<double> values =
+      RequireList(node["T_BS"], "data", 16, path);
+
+  // Row-major 4x4: values[0..3] is the first row, values[4..7] the second.
+  Mat3 rotation;
+  rotation << values[0], values[1], values[2], values[4], values[5], values[6],
+      values[8], values[9], values[10];
+
+  const Vec3 translation(values[3], values[7], values[11]);
+
+  return Pose(rotation, translation);
+}
+
+StereoCalibration ReadStereoCalibration(const std::string& mav0_dir) {
+  StereoCalibration calibration;
+
+  calibration.left = ReadCamera(mav0_dir + "/cam0/sensor.yaml");
+  calibration.right = ReadCamera(mav0_dir + "/cam1/sensor.yaml");
+  calibration.T_body_left = ReadExtrinsics(mav0_dir + "/cam0/sensor.yaml");
+  calibration.T_body_right = ReadExtrinsics(mav0_dir + "/cam1/sensor.yaml");
+
+  const Mat3 rotation =
+      calibration.T_body_left.R.transpose() * calibration.T_body_right.R;
+  const Vec3 translation =
+      calibration.T_body_left.R.transpose() *
+      (calibration.T_body_right.t - calibration.T_body_left.t);
+
+  calibration.T_left_right = Pose(rotation, translation);
+
+  return calibration;
+}
 }  // namespace lvio

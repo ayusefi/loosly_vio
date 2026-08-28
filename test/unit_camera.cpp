@@ -163,5 +163,95 @@ TEST(Undistort, HandlesTheWorstCorner) {
   EXPECT_LT((recovered - corner).norm(), 1e-7);
 }
 
+TEST(ReadExtrinsics, ImuIsTheBodyFrame) {
+  const std::string path =
+      "data/euroc/machine_hall/MH_01_easy/mav0/imu0/sensor.yaml";
+  std::ifstream exists(path);
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const Pose T_body_imu = ReadExtrinsics(path);
+
+  EXPECT_LT((T_body_imu.R - Mat3::Identity()).norm(), 1e-15);
+  EXPECT_LT(T_body_imu.t.norm(), 1e-15);
+}
+
+TEST(ReadExtrinsics, PutsCam0SixCentimetresFromTheImu) {
+  const std::string path =
+      "data/euroc/machine_hall/MH_01_easy/mav0/cam0/sensor.yaml";
+  std::ifstream exists(path);
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const Pose T_body_cam0 = ReadExtrinsics(path);
+
+  EXPECT_NEAR(T_body_cam0.t.x(), -0.021640, 1e-6);
+  EXPECT_NEAR(T_body_cam0.t.y(), -0.064677, 1e-6);
+  EXPECT_NEAR(T_body_cam0.t.z(), 0.009811, 1e-6);
+  // Lesson 8: a valid rotation, not merely a matrix.
+  EXPECT_LT(
+      (T_body_cam0.R.transpose() * T_body_cam0.R - Mat3::Identity()).norm(),
+      1e-12);
+  EXPECT_NEAR(T_body_cam0.R.determinant(), 1.0, 1e-12);
+}
+
+TEST(ReadStereoCalibration, GivesAnElevenCentimetreBaseline) {
+  const std::string dir = "data/euroc/machine_hall/MH_01_easy/mav0";
+  std::ifstream exists(dir + "/cam0/sensor.yaml");
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const StereoCalibration c = ReadStereoCalibration(dir);
+
+  EXPECT_NEAR(c.T_left_right.t.norm(), 0.110078, 1e-6);
+}
+
+// The cameras are side by side, so the baseline lies along camera x.
+TEST(ReadStereoCalibration, PutsTheBaselineAlongCameraX) {
+  const std::string dir = "data/euroc/machine_hall/MH_01_easy/mav0";
+  std::ifstream exists(dir + "/cam0/sensor.yaml");
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const StereoCalibration c = ReadStereoCalibration(dir);
+  const Vec3 baseline = c.T_left_right.t;
+
+  EXPECT_GT(std::abs(baseline.x()) / baseline.norm(), 0.999);
+}
+
+// The two cameras look almost the same way.
+TEST(ReadStereoCalibration, HasTheTwoCamerasNearlyParallel) {
+  const std::string dir = "data/euroc/machine_hall/MH_01_easy/mav0";
+  std::ifstream exists(dir + "/cam0/sensor.yaml");
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const StereoCalibration c = ReadStereoCalibration(dir);
+  const double degrees = Log(c.T_left_right.R).norm() * 180.0 / M_PI;
+
+  EXPECT_LT(degrees, 2.0);
+  EXPECT_GT(degrees, 0.0);
+}
+
+// The derived pose must be consistent with the two it came from: going to the
+// right camera directly, or via the left one, must land in the same place.
+TEST(ReadStereoCalibration, IsConsistentWithBothExtrinsics) {
+  const std::string dir = "data/euroc/machine_hall/MH_01_easy/mav0";
+  std::ifstream exists(dir + "/cam0/sensor.yaml");
+  if (!exists) {
+    GTEST_SKIP() << "dataset not present";
+  }
+
+  const StereoCalibration c = ReadStereoCalibration(dir);
+  const Pose via_left = c.T_body_left * c.T_left_right;
+
+  EXPECT_LT((via_left.R - c.T_body_right.R).norm(), 1e-12);
+  EXPECT_LT((via_left.t - c.T_body_right.t).norm(), 1e-12);
+}
 }  // namespace
 }  // namespace lvio

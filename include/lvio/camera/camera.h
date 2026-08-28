@@ -3,6 +3,7 @@
 #include <string>
 
 #include "lvio/common/types.h"
+#include "lvio/math/pose.h"
 
 namespace lvio {
 
@@ -44,5 +45,23 @@ struct Camera {
 // if the file describes a camera or distortion model this code does not
 // implement.
 Camera ReadCamera(const std::string& path);
+
+// The two cameras and how they are placed. T_body_left and T_body_right come
+// straight from the two sensor.yaml files; T_left_right is derived from them,
+// because neither file mentions the other camera.
+struct StereoCalibration {
+  Camera left;
+  Camera right;
+  Pose T_body_left;
+  Pose T_body_right;
+  Pose T_left_right;
+};
+
+// Reads the T_BS block out of a sensor.yaml.
+Pose ReadExtrinsics(const std::string& path);
+
+// Reads both cameras from a mav0 directory and works out where they sit
+// relative to each other.
+StereoCalibration ReadStereoCalibration(const std::string& mav0_dir);
 
 }  // namespace lvio
