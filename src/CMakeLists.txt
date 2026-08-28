@@ -1,6 +1,7 @@
 add_library(lvio_core
   common/build_info.cpp
   io/euroc.cpp
+  camera/camera.cpp
 )
 
 target_include_directories(lvio_core PUBLIC
