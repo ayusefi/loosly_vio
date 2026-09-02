@@ -44,6 +44,7 @@ configure_file(cmake/version.h.in
   ${CMAKE_CURRENT_BINARY_DIR}/generated/lvio/common/version.h @ONLY)
 
 add_subdirectory(src)
+add_subdirectory(apps)
 
 if(LVIO_BUILD_TESTS)
   enable_testing()

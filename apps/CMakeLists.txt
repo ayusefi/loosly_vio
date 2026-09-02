@@ -1,0 +1,3 @@
+add_executable(gt_to_tum gt_to_tum.cpp)
+target_link_libraries(gt_to_tum PRIVATE lvio_core)
+lvio_set_warnings(gt_to_tum)

@@ -1,6 +1,7 @@
 add_library(lvio_core
   common/build_info.cpp
   io/euroc.cpp
+  io/trajectory.cpp
   camera/camera.cpp
 )
 
