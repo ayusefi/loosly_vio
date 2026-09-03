@@ -1,3 +1,7 @@
 add_executable(gt_to_tum gt_to_tum.cpp)
 target_link_libraries(gt_to_tum PRIVATE lvio_core)
 lvio_set_warnings(gt_to_tum)
+
+add_executable(imu_dead_reckon imu_dead_reckon.cpp)
+target_link_libraries(imu_dead_reckon PRIVATE lvio_core)
+lvio_set_warnings(imu_dead_reckon)

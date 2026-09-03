@@ -3,6 +3,7 @@ add_library(lvio_core
   io/euroc.cpp
   io/trajectory.cpp
   camera/camera.cpp
+  imu/propagate.cpp
 )
 
 target_include_directories(lvio_core PUBLIC
