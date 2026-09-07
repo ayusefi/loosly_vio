@@ -28,4 +28,21 @@ struct ImuBias {
 NavState Propagate(const NavState& state, const ImuSample& sample,
                    const ImuBias& bias, double dt);
 
+// The four noise numbers from imu0/sensor.yaml. Densities, not standard
+// deviations -- see lesson 37 part 5 for the conversion.
+struct ImuNoise {
+  double accel_density = 2.0000e-3;      // m/s^2 / sqrt(Hz)
+  double gyro_density = 1.6968e-4;       // rad/s / sqrt(Hz)
+  double accel_random_walk = 3.0000e-3;  // m/s^3 / sqrt(Hz)
+  double gyro_random_walk = 1.9393e-5;   // rad/s^2 / sqrt(Hz)
+};
+
+// How the fifteen errors turn into each other over one step.
+Mat15 ErrorTransition(const NavState& state, const ImuSample& sample,
+                      const ImuBias& bias, double dt);
+
+// The fresh error one step adds. Diagonal, because the four noise
+// sources are assumed unrelated.
+Mat15 ProcessNoise(const ImuNoise& noise, double dt);
+
 }  // namespace lvio
