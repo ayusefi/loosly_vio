@@ -4,6 +4,10 @@
 
 #include <algorithm>
 
+#include <opencv2/video/tracking.hpp>
+
+#include <cmath>
+
 namespace lvio {
 
 namespace {
@@ -56,6 +60,41 @@ std::vector<cv::Point2f> DetectFeatures(const cv::Mat& image,
     }
   }
   return kept;
+}
+
+TrackResult TrackFeatures(const cv::Mat& previous, const cv::Mat& current,
+                          const std::vector<cv::Point2f>& features,
+                          const TrackerConfig& config) {
+  TrackResult result;
+  if (features.empty()) {
+    return result;  // OpenCV will not accept an empty point list.
+  }
+
+  const cv::Size window(config.window, config.window);
+  std::vector<unsigned char> forward_ok;
+  std::vector<float> error;
+  cv::calcOpticalFlowPyrLK(previous, current, features, result.points,
+                           forward_ok, error, window, config.pyramid_levels);
+
+  // The same call the other way round. The tracker's own status flag is not
+  // enough: at a 40 pixel shift it keeps 197 of 200 features while being 38.8
+  // pixels wrong. Tracking back and checking we return is our own test.
+  std::vector<cv::Point2f> back;
+  std::vector<unsigned char> back_ok;
+  cv::calcOpticalFlowPyrLK(current, previous, result.points, back, back_ok,
+                           error, window, config.pyramid_levels);
+
+  result.ok.resize(features.size());
+  for (std::size_t i = 0; i < features.size(); ++i) {
+    const cv::Point2f drift = back[i] - features[i];
+    const double distance = std::sqrt(drift.x * drift.x + drift.y * drift.y);
+    result.ok[i] = forward_ok[i] && back_ok[i] &&
+                   distance < config.max_forward_backward &&
+                   result.points[i].x >= 0 && result.points[i].y >= 0 &&
+                   result.points[i].x < current.cols &&
+                   result.points[i].y < current.rows;
+  }
+  return result;
 }
 
 }  // namespace lvio
