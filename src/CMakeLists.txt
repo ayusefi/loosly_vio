@@ -4,6 +4,7 @@ add_library(lvio_core
   io/trajectory.cpp
   camera/camera.cpp
   imu/propagate.cpp
+  vision/feature_tracker.cpp
 )
 
 target_include_directories(lvio_core PUBLIC
