@@ -5,3 +5,7 @@ lvio_set_warnings(gt_to_tum)
 add_executable(imu_dead_reckon imu_dead_reckon.cpp)
 target_link_libraries(imu_dead_reckon PRIVATE lvio_core)
 lvio_set_warnings(imu_dead_reckon)
+
+add_executable(track_features track_features.cpp)
+target_link_libraries(track_features PRIVATE lvio_core)
+lvio_set_warnings(track_features)
