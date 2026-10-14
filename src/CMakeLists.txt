@@ -5,6 +5,7 @@ add_library(lvio_core
   camera/camera.cpp
   imu/propagate.cpp
   vision/feature_tracker.cpp
+  vision/stereo_matcher.cpp
 )
 
 target_include_directories(lvio_core PUBLIC
