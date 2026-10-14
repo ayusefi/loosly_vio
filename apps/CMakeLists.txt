@@ -9,3 +9,7 @@ lvio_set_warnings(imu_dead_reckon)
 add_executable(track_features track_features.cpp)
 target_link_libraries(track_features PRIVATE lvio_core)
 lvio_set_warnings(track_features)
+
+add_executable(stereo_depth stereo_depth.cpp)
+target_link_libraries(stereo_depth PRIVATE lvio_core)
+lvio_set_warnings(stereo_depth)
